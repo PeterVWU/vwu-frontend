@@ -8,7 +8,6 @@ fragment RowRenderer on Page @inject(into: ["HygraphPage"]) {
     ...RowColumnTwo
     ...RowColumnThree
     ...RowBlogContent
-    ...RowHeroBanner
     ...RowSpecialBanner
     ...RowQuote
     ...RowButtonLinkList
@@ -16,5 +15,6 @@ fragment RowRenderer on Page @inject(into: ["HygraphPage"]) {
     ...RowContentLinks
     ...RowProduct
     ...RowLinks
+    ...RowHeroCarousel
   }
 }

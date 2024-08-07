@@ -14,6 +14,28 @@ import { MeshApolloLink, getBuiltMesh } from '@graphcommerce/graphql-mesh'
 import { storefrontConfig, storefrontConfigDefault } from '@graphcommerce/next-ui'
 import { i18nSsrLoader } from '../i18n/I18nProvider'
 
+
+const loggingLink = new ApolloLink((operation, forward) => {
+  console.log('GraphQL Request:', {
+    operationName: operation.operationName,
+    variables: operation.variables,
+    headers: operation.getContext().headers, // Access headers from context
+    uri: operation.getContext().uri
+  });
+
+  return forward(operation).map((response) => {
+    const updatedContext = operation.getContext();
+    console.log(`GraphQL URL: ${updatedContext.uri || 'Not available'}`);
+    console.log(`GraphQL Response for ${operation.operationName}:`, {
+      data: response?.data,
+      errors: response?.errors,
+      extensions: response?.extensions,
+      // networkStatus: response?.networkStatus
+    });
+    return response;
+  });
+});
+
 function client(locale: string | undefined, fetchPolicy: FetchPolicy = 'no-cache') {
   const config = graphqlConfig({
     storefront: storefrontConfig(locale) ?? storefrontConfigDefault(),
@@ -21,6 +43,7 @@ function client(locale: string | undefined, fetchPolicy: FetchPolicy = 'no-cache
 
   return new ApolloClient({
     link: ApolloLink.from([
+      loggingLink,
       measurePerformanceLink,
       errorLink,
       ...config.links,

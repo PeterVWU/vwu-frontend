@@ -105,6 +105,7 @@ function CategoryPage(props: CategoryProps) {
           />
         </>
       )}
+      thisisatest
       {page && (
         <RowRenderer
           content={page.content}
@@ -170,19 +171,19 @@ export const getStaticProps: GetPageStaticProps = async ({ params, locale }) => 
 
   const filters = hasCategory
     ? staticClient.query({
-        query: ProductFiltersDocument,
-        variables: { filters: { category_uid: { eq: categoryUid } } },
-      })
+      query: ProductFiltersDocument,
+      variables: { filters: { category_uid: { eq: categoryUid } } },
+    })
     : undefined
   const products = hasCategory
     ? staticClient.query({
-        query: ProductListDocument,
-        variables: {
-          pageSize: (await conf).data.storeConfig?.grid_per_page ?? 24,
-          ...productListParams,
-          filters: { ...productListParams?.filters, category_uid: { eq: categoryUid } },
-        },
-      })
+      query: ProductListDocument,
+      variables: {
+        pageSize: (await conf).data.storeConfig?.grid_per_page ?? 24,
+        ...productListParams,
+        filters: { ...productListParams?.filters, category_uid: { eq: categoryUid } },
+      },
+    })
     : undefined
 
   const hasPage = filteredCategoryUid ? false : (await pages).data.pages.length > 0

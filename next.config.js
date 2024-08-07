@@ -27,6 +27,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  staticPageGenerationTimeout: 180,
 }
 
 module.exports = withGraphCommerce(withPWA(nextConfig), __dirname)

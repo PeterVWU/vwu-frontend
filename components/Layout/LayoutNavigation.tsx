@@ -25,19 +25,26 @@ import {
 } from '@graphcommerce/next-ui'
 import { i18n } from '@lingui/core'
 import { Trans } from '@lingui/react'
-import { Divider, Fab } from '@mui/material'
+import { Divider, Fab, Container, Typography, Box } from '@mui/material'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { Footer } from './Footer'
 import { LayoutQuery } from './Layout.gql'
 import { Logo } from './Logo'
+import { AgeVerificationModal } from '../AgeVerificationModal'
 
 export type LayoutNavigationProps = LayoutQuery &
   Omit<LayoutDefaultProps, 'footer' | 'header' | 'cartFab' | 'menuFab'>
 
 export function LayoutNavigation(props: LayoutNavigationProps) {
   const { footer, menu, children, ...uiProps } = props
-
+  const beforeHeader: React.ReactNode = (
+    <Container maxWidth={false} sx={{ border: '3px black solid' }}>
+      <Typography align='center' variant='h4'>
+        WARNING: This product contains nicotine. Nicotine is an addictive chemical.
+      </Typography>
+    </Container>
+  )
   const selection = useNavigationSelection()
   const router = useRouter()
 
@@ -59,19 +66,19 @@ export function LayoutNavigation(props: LayoutNavigationProps) {
             >
               <Trans id='Search...' />
             </SearchLink>,
-            { id: 'home', name: <Trans id='Home' />, href: '/' },
-            {
-              id: 'manual-item-one',
-              href: `/${menu?.items?.[0]?.children?.[0]?.url_path}`,
-              name: menu?.items?.[0]?.children?.[0]?.name ?? '',
-            },
-            {
-              id: 'manual-item-two',
-              href: `/${menu?.items?.[0]?.children?.[1]?.url_path}`,
-              name: menu?.items?.[0]?.children?.[1]?.name ?? '',
-            },
-            ...magentoMenuToNavigation(menu, true),
-            { id: 'blog', name: 'Blog', href: '/blog' },
+            // { id: 'home', name: <Trans id='Home' />, href: '/' },
+            // {
+            //   id: 'manual-item-one',
+            //   href: `/${menu?.items?.[0]?.children?.[0]?.url_path}`,
+            //   name: menu?.items?.[0]?.children?.[0]?.name ?? '',
+            // },
+            // {
+            //   id: 'manual-item-two',
+            //   href: `/${menu?.items?.[0]?.children?.[1]?.url_path}`,
+            //   name: menu?.items?.[0]?.children?.[1]?.name ?? '',
+            // },
+            ...magentoMenuToNavigation(menu, false),
+            // { id: 'blog', name: 'Blog', href: '/blog' },
             <Divider sx={(theme) => ({ my: theme.spacings.xs })} />,
             <CustomerMenuFabItem
               onClick={() => selection.set(false)}
@@ -117,18 +124,39 @@ export function LayoutNavigation(props: LayoutNavigationProps) {
 
       <LayoutDefault
         {...uiProps}
+        beforeHeader={beforeHeader}
         noSticky={router.asPath.split('?')[0] === '/'}
         header={
           <>
-            <Logo />
+            <Box display='flex' alignItems='center' flexDirection='row' gap={1}>
+              <Logo />
+              <Typography variant='h2'>VapeWholeSaleUSA</Typography>
+            </Box>
+            {/* Categories that have children show sub menu */}
             <DesktopNavBar>
-              {menu?.items?.[0]?.children?.slice(0, 2).map((item) => (
-                <DesktopNavItem key={item?.uid} href={`/${item?.url_path}`}>
-                  {item?.name}
-                </DesktopNavItem>
-              ))}
+              {menu?.items?.[0]?.children?.map((item) =>
+                item?.children && item?.children?.length > 1 ? (
+                  <DesktopNavItem
+                    key={item?.uid}
+                    onClick={() => selection.set([item?.uid || ''])}
+                    onKeyUp={(evt) => {
+                      if (evt.key === 'Enter') {
+                        selection.set([item?.uid || ''])
+                      }
+                    }}
+                    tabIndex={0}
+                  >
+                    {item?.name}
+                    <IconSvg src={iconChevronDown} />
+                  </DesktopNavItem>
+                ) : (
+                  <DesktopNavItem key={item?.uid} href={`/${item?.url_path}`}>
+                    {item?.name}
+                  </DesktopNavItem>
+                ),
+              )}
 
-              <DesktopNavItem
+              {/* <DesktopNavItem
                 onClick={() => selection.set([menu?.items?.[0]?.uid || ''])}
                 onKeyUp={(evt) => {
                   if (evt.key === 'Enter') {
@@ -143,9 +171,8 @@ export function LayoutNavigation(props: LayoutNavigationProps) {
 
               <DesktopNavItem href='/blog'>
                 <Trans id='Blog' />
-              </DesktopNavItem>
+              </DesktopNavItem> */}
             </DesktopNavBar>
-
             <DesktopNavActions>
               {!router.pathname.startsWith('/search') && (
                 <SearchLink
@@ -173,6 +200,7 @@ export function LayoutNavigation(props: LayoutNavigationProps) {
         cartFab={<CartFab />}
         menuFab={<NavigationFab onClick={() => selection.set([])} />}
       >
+        <AgeVerificationModal></AgeVerificationModal>
         {children}
       </LayoutDefault>
     </>
