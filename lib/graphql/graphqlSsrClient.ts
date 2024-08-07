@@ -43,7 +43,6 @@ function client(locale: string | undefined, fetchPolicy: FetchPolicy = 'no-cache
 
   return new ApolloClient({
     link: ApolloLink.from([
-      loggingLink,
       measurePerformanceLink,
       errorLink,
       ...config.links,
