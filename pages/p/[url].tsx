@@ -50,6 +50,7 @@ import {
 import { UspsDocument, UspsQuery } from '../../components/Usps/Usps.gql'
 import { ProductPage2Document, ProductPage2Query } from '../../graphql/ProductPage2.gql'
 import { graphqlSharedClient, graphqlSsrClient } from '../../lib/graphql/graphqlSsrClient'
+import ProductGrid, { ConfigurableProduct } from '../../components/ProductGrid/index'
 
 type Props = HygraphPagesQuery &
   UspsQuery &
@@ -67,8 +68,51 @@ function ProductPage(props: Props) {
     products?.items?.[0],
     relatedUpsells?.items?.find((item) => item?.uid === products?.items?.[0]?.uid),
   )
-
+  console.log("product", product)
   if (!product?.sku || !product.url_key) return null
+
+  function transformToConfigurableProduct(product: any): ConfigurableProduct {
+    return {
+      __typename: 'ConfigurableProduct',
+      name: product.name,
+      sku: product.sku,
+      small_image: {
+        url: product.small_image?.url ?? '',
+        label: product.small_image?.label ?? '',
+      },
+      price_range: {
+        minimum_price: {
+          final_price: {
+            currency: product.price_range?.minimum_price?.final_price?.currency ?? '',
+            value: product.price_range?.minimum_price?.final_price?.value ?? 0,
+          },
+        },
+      },
+      configurable_options: product.configurable_options?.map((option: any) => ({
+        attribute_code: option.attribute_code,
+        label: option.label,
+        values: option.values?.map((value: any) => ({
+          uid: value.uid,
+          store_label: value.store_label,
+        })) ?? [],
+      })) ?? [],
+      variants: product.variants?.map((variant: any) => ({
+        attributes: variant.attributes?.map((attr: any) => ({
+          code: attr.code,
+          uid: attr.uid,
+        })) ?? [],
+        product: {
+          uid: variant.product?.uid ?? '',
+          sku: variant.product?.sku ?? '',
+          name: variant.product?.name ?? '',
+          small_image: {
+            url: variant.product?.small_image?.url ?? '',
+            label: variant.product?.small_image?.label ?? '',
+          },
+        },
+      })) ?? [],
+    };
+  }
 
   return (
     <>
@@ -117,21 +161,24 @@ function ProductPage(props: Props) {
           </div>
 
           {isTypename(product, ['ConfigurableProduct']) && (
-            <ConfigurableProductOptions
-              product={product}
-              optionEndLabels={{
-                size: (
-                  <Link
-                    href='/modal/product/global/size'
-                    rel='nofollow'
-                    color='primary'
-                    underline='hover'
-                  >
-                    <Trans id='Which size is right?' />
-                  </Link>
-                ),
-              }}
-            />
+            <>
+              <ProductGrid product={transformToConfigurableProduct(product)} />
+              <ConfigurableProductOptions
+                product={product}
+                optionEndLabels={{
+                  size: (
+                    <Link
+                      href='/modal/product/global/size'
+                      rel='nofollow'
+                      color='primary'
+                      underline='hover'
+                    >
+                      <Trans id='Which size is right?' />
+                    </Link>
+                  ),
+                }}
+              />
+            </>
           )}
           {isTypename(product, ['BundleProduct']) && (
             <BundleProductOptions product={product} layout='stack' />
@@ -210,7 +257,7 @@ export const getStaticPaths: GetPageStaticPaths = async ({ locales = [] }) => {
 
   const path = (locale: string) => getProductStaticPaths(graphqlSsrClient(locale), locale)
   const paths = (await Promise.all(locales.map(path))).flat(1)
-  return { paths, fallback: 'blocking' }
+  return { paths: paths.slice(0, 1), fallback: 'blocking' }
 }
 
 export const getStaticProps: GetPageStaticProps = async ({ params, locale }) => {

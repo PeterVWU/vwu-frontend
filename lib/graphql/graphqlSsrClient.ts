@@ -13,15 +13,22 @@ import {
 import { MeshApolloLink, getBuiltMesh } from '@graphcommerce/graphql-mesh'
 import { storefrontConfig, storefrontConfigDefault } from '@graphcommerce/next-ui'
 import { i18nSsrLoader } from '../i18n/I18nProvider'
+import { print } from 'graphql';
 
 
 const loggingLink = new ApolloLink((operation, forward) => {
-  console.log('GraphQL Request:', {
-    operationName: operation.operationName,
-    variables: operation.variables,
-    headers: operation.getContext().headers, // Access headers from context
-    uri: operation.getContext().uri
-  });
+  if (operation.operationName === 'ProductPage2') {
+    const context = operation.getContext();
+    console.log('context key', Object.keys(context));
+    console.log('operation key', Object.keys(operation));
+    const queryString = print(operation.query);
+    console.log('query', queryString);
+    console.log('GraphQL Request:', {
+      operationName: operation.operationName,
+      variables: operation.variables,
+    });
+  }
+
 
   return forward(operation).map((response) => {
     const updatedContext = operation.getContext();
@@ -43,6 +50,7 @@ function client(locale: string | undefined, fetchPolicy: FetchPolicy = 'no-cache
 
   return new ApolloClient({
     link: ApolloLink.from([
+      loggingLink,
       measurePerformanceLink,
       errorLink,
       ...config.links,

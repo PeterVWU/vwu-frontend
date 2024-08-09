@@ -3,7 +3,6 @@ import React from 'react'
 import { Dialog, DialogContent, DialogActions, Typography, Button } from '@mui/material'
 import { extendableComponent } from '@graphcommerce/next-ui'
 import { useAgeVerification } from '../../hooks/useAgeVerification'
-import { AgeIcon } from './AgeIcon'
 
 const { classes } = extendableComponent('AgeVerificationModal', ['root', 'content', 'actions'])
 
@@ -26,7 +25,7 @@ export function AgeVerificationModal() {
   return (
     <Dialog
       open={!isVerified}
-      onClose={() => {}}
+      onClose={() => { }}
       sx={{
         '& .MuiDialog-paper': {
           borderRadius: (theme) => theme.shape.borderRadius,

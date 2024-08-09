@@ -15,6 +15,7 @@ const config = {
   recentlyViewedProducts: {
     enabled: true,
   },
+  limitSsg: true
 }
 
 module.exports = config
