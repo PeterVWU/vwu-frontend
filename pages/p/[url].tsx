@@ -51,6 +51,12 @@ import { UspsDocument, UspsQuery } from '../../components/Usps/Usps.gql'
 import { ProductPage2Document, ProductPage2Query } from '../../graphql/ProductPage2.gql'
 import { graphqlSharedClient, graphqlSsrClient } from '../../lib/graphql/graphqlSsrClient'
 import ProductGrid, { ConfigurableProduct } from '../../components/ProductGrid/index'
+// import ProductVariantsGrid from "../../components/ProductGrid/ProductVariantsGrid";
+import { ProductVariantsGridWrapper } from "../../components/ProductGrid/ProductVariantsGridWrapper";
+import { useCustomerQuery, CustomerDocument, CustomerQuery } from "@graphcommerce/magento-customer";
+
+import { useQuery } from '@graphcommerce/graphql'
+
 
 type Props = HygraphPagesQuery &
   UspsQuery &
@@ -70,6 +76,12 @@ function ProductPage(props: Props) {
   )
   console.log("product", product)
   if (!product?.sku || !product.url_key) return null
+
+  const { data: customerData, loading: customerLoading } = useQuery<CustomerQuery>(CustomerDocument)
+  console.log("customerData", customerData)
+  const isRetailCustomer = customerData?.customer?.group_id === 1;
+
+
 
   function transformToConfigurableProduct(product: any): ConfigurableProduct {
     return {
@@ -159,10 +171,8 @@ function ProductPage(props: Props) {
             />
             <ProductReviewChip rating={product.rating_summary} reviewSectionId='reviews' />
           </div>
-
-          {isTypename(product, ['ConfigurableProduct']) && (
-            <>
-              <ProductGrid product={transformToConfigurableProduct(product)} />
+          {isRetailCustomer ? (<>
+            {isTypename(product, ['ConfigurableProduct']) && (
               <ConfigurableProductOptions
                 product={product}
                 optionEndLabels={{
@@ -178,38 +188,43 @@ function ProductPage(props: Props) {
                   ),
                 }}
               />
-            </>
+            )}
+            {isTypename(product, ['BundleProduct']) && (
+              <BundleProductOptions product={product} layout='stack' />
+            )}
+            {isTypename(product, ['DownloadableProduct']) && (
+              <DownloadableProductOptions product={product} />
+            )}
+            {!isTypename(product, ['GroupedProduct']) && <ProductCustomizable product={product} />}
+
+            <Divider />
+
+            <ProductPageAddToCartQuantityRow product={product}>
+              <AddProductsToCartQuantity sx={{ flexShrink: '0' }} />
+
+              <AddProductsToCartError>
+                <Typography component='div' variant='h3' lineHeight='1'>
+                  <ProductPagePrice product={product} />
+                </Typography>
+              </AddProductsToCartError>
+            </ProductPageAddToCartQuantityRow>
+
+            <ProductPagePriceTiers product={product} />
+
+            <ProductSidebarDelivery product={product} />
+
+            <ProductPageAddToCartActionsRow product={product}>
+              <AddProductsToCartButton fullWidth product={product} />
+              <ProductWishlistChipDetail {...product} />
+            </ProductPageAddToCartActionsRow>
+
+            <Usps usps={sidebarUsps} size='small' />
+          </>) : (
+
+            // <ProductGrid product={transformToConfigurableProduct(product)} />
+            <ProductVariantsGridWrapper product={transformToConfigurableProduct(product)} />
           )}
-          {isTypename(product, ['BundleProduct']) && (
-            <BundleProductOptions product={product} layout='stack' />
-          )}
-          {isTypename(product, ['DownloadableProduct']) && (
-            <DownloadableProductOptions product={product} />
-          )}
-          {!isTypename(product, ['GroupedProduct']) && <ProductCustomizable product={product} />}
 
-          <Divider />
-
-          <ProductPageAddToCartQuantityRow product={product}>
-            <AddProductsToCartQuantity sx={{ flexShrink: '0' }} />
-
-            <AddProductsToCartError>
-              <Typography component='div' variant='h3' lineHeight='1'>
-                <ProductPagePrice product={product} />
-              </Typography>
-            </AddProductsToCartError>
-          </ProductPageAddToCartQuantityRow>
-
-          <ProductPagePriceTiers product={product} />
-
-          <ProductSidebarDelivery product={product} />
-
-          <ProductPageAddToCartActionsRow product={product}>
-            <AddProductsToCartButton fullWidth product={product} />
-            <ProductWishlistChipDetail {...product} />
-          </ProductPageAddToCartActionsRow>
-
-          <Usps usps={sidebarUsps} size='small' />
         </ProductPageGallery>
 
         <ProductPageDescription

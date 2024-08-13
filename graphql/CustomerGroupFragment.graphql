@@ -1,0 +1,3 @@
+fragment CustomerGroupFragment on Customer @inject(into: ["CustomerInfo"]){
+    group_id
+}
