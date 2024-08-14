@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client';
-import { useCartQuery } from '@graphcommerce/magento-cart';
+import { useCartQuery, useCartIdCreate } from '@graphcommerce/magento-cart';
 import { CartPageDocument } from '@graphcommerce/magento-cart-checkout'
 import { AddProductsToCartDocument } from './AddProductsToCart.gql';
 import { CreateEmptyCartDocument } from './CreateEmptyCart.gql';
@@ -11,31 +11,14 @@ import {
     Typography,
     TextField,
     Button,
-    IconButton,
     Card,
     Box,
     Grid,
     CardContent,
 } from '@mui/material';
-import { iconClose, IconSvg } from '@graphcommerce/next-ui';
 import { styled } from '@mui/system';
 import Cookies from 'js-cookie';
-import { AddProductsToCartForm } from "@graphcommerce/magento-product";
 
-const StyledPaper = styled(Paper)(({ theme }) => ({
-    padding: theme.spacing(2),
-    textAlign: 'center',
-    color: theme.palette.text.secondary,
-    '&:hover': {
-        boxShadow: (theme.shadows as any)[4],
-    },
-}));
-
-const QuantityControl = styled('div')({
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-});
 const StyledCard = styled(Card)<{ index: number }>(({ theme, index }) => ({
     display: 'flex',
     flexDirection: 'column',
@@ -113,44 +96,25 @@ interface ProductGridProps {
 
 const ProductGrid: React.FC<ProductGridProps> = ({ product }) => {
     const [quantities, setQuantities] = useState<Record<string, number>>({});
-    const [cartId, setCartId] = useState<string | null>(null);
+    // const [cartId, setCartId] = useState<string | null>(null);
     const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-
-
-    // const [error, setError] = useState<string | null>(null);
 
     const [createEmptyCart] = useMutation<{ createEmptyCart: string }>(CreateEmptyCartDocument);
 
-    console.log('cartId', cartId)
-    const cart = useCartQuery(CartPageDocument, {
-        errorPolicy: 'all',
-        fetchPolicy: 'cache-and-network',
-    })
-    const { loading: cartLoading, error: cartError, data: cartData, refetch: refetchCart } = cart
-    console.log('cartData', cartData)
-    console.log('cartError', cartError)
+    const cartId = useCartIdCreate();
 
     const [addProductsToCart, { loading }] = useMutation(AddProductsToCartDocument, {
         onCompleted: (data) => {
             console.log('Products added to cart:', data);
-            refetchCart();
             setMessage({ text: `${product.name} has been added to your shopping cart!`, type: 'success' });
 
         },
         onError: (error) => {
+            console.log('add to cart error', error)
             setMessage({ text: `Error adding products to cart: ${error.message}`, type: 'error' });
         }
     });
-    useEffect(() => {
-        // Retrieve cart ID from cookie
-        const cookieCartId = Cookies.get('cart');
-        if (cookieCartId) {
-            setCartId(cookieCartId);
-            console.log('Cart ID from cookie:', cookieCartId);
-        } else {
-            console.log('No cart ID found in cookie');
-        }
-    }, []);
+
     useEffect(() => {
         // Initialize quantities to 0 for all variants
         const initialQuantities = product.variants.reduce((acc, variant) => {
@@ -166,24 +130,25 @@ const ProductGrid: React.FC<ProductGridProps> = ({ product }) => {
     };
 
     const addToCart = async () => {
-        let currentCartId = cartId;
+        let currentCartId = await cartId();
+        console.log('currentCartId', currentCartId)
 
-        if (!currentCartId) {
-            try {
-                const result = await createEmptyCart();
-                if (result.data?.createEmptyCart) {
-                    currentCartId = result.data.createEmptyCart;
-                    setCartId(currentCartId);
-                    Cookies.set('cart', currentCartId);
-                } else {
-                    throw new Error('Failed to create a new cart');
-                }
-            } catch (err) {
-                console.error('Error creating cart:', err);
-                setMessage({ text: err instanceof Error ? err.message : 'An unknown error occurred', type: 'error' });
-                return;
-            }
-        }
+        // if (!currentCartId) {
+        //     try {
+        //         const result = await createEmptyCart();
+        //         if (result.data?.createEmptyCart) {
+        //             currentCartId = result.data.createEmptyCart;
+        //             setCartId(currentCartId);
+        //             Cookies.set('cart', currentCartId);
+        //         } else {
+        //             throw new Error('Failed to create a new cart');
+        //         }
+        //     } catch (err) {
+        //         console.error('Error creating cart:', err);
+        //         setMessage({ text: err instanceof Error ? err.message : 'An unknown error occurred', type: 'error' });
+        //         return;
+        //     }
+        // }
 
         const cartItems = Object.entries(quantities)
             .filter(([_, quantity]) => quantity > 0)
@@ -213,9 +178,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({ product }) => {
 
     const totalQuantity = Object.values(quantities).reduce((sum, q) => sum + q, 0);
     const totalPrice = Object.values(quantities).reduce((sum, q) => sum + q * price, 0);
-
-    // if (cartLoading) return <Typography>Loading cart...</Typography>;
-    // if (cartError) return <Typography color="error">Error loading cart: {cartError.message}</Typography>;
 
     return (
         <Box sx={{ flexGrow: 1 }}>

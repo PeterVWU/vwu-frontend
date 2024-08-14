@@ -105,7 +105,6 @@ function CategoryPage(props: CategoryProps) {
           />
         </>
       )}
-      thisisatest
       {page && (
         <RowRenderer
           content={page.content}

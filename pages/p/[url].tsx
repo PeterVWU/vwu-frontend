@@ -221,8 +221,8 @@ function ProductPage(props: Props) {
             <Usps usps={sidebarUsps} size='small' />
           </>) : (
 
-            // <ProductGrid product={transformToConfigurableProduct(product)} />
-            <ProductVariantsGridWrapper product={transformToConfigurableProduct(product)} />
+            <ProductGrid product={transformToConfigurableProduct(product)} />
+            // <ProductVariantsGridWrapper product={transformToConfigurableProduct(product)} />
           )}
 
         </ProductPageGallery>

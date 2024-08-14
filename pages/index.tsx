@@ -25,7 +25,7 @@ function CmsPage(props: Props) {
   const page = pages?.[0]
 
   const onSale = onSaleList?.products?.items?.[0]
-  const favorite = newArrivalList?.products?.items?.[0]
+  const newArrival = newArrivalList?.products?.items?.[0]
   const disposables = disposablesList?.products?.items?.[0]
 
   return (
@@ -48,7 +48,7 @@ function CmsPage(props: Props) {
 
               if (identity === 'home-new')
                 return (
-                  <RowProduct {...rowProps} {...favorite} items={newArrivalList.products?.items} />
+                  <RowProduct {...rowProps} {...newArrival} items={newArrivalList.products?.items} />
                 )
               if (identity === 'home-sale')
                 return <RowProduct {...rowProps} {...onSale} items={onSaleList.products?.items} />
@@ -57,7 +57,7 @@ function CmsPage(props: Props) {
                   <RowProduct {...rowProps} {...disposables} items={disposablesList.products?.items} />
                 )
               return (
-                <RowProduct {...rowProps} {...favorite} items={newArrivalList.products?.items} />
+                <RowProduct {...rowProps} {...newArrival} items={newArrivalList.products?.items} />
               )
             },
           }}
