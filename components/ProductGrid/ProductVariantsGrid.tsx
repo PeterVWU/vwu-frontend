@@ -1,13 +1,8 @@
-
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useMutation } from '@apollo/client';
-import { useCartQuery, useCartIdCreate } from '@graphcommerce/magento-cart';
-import { CartPageDocument } from '@graphcommerce/magento-cart-checkout'
-import { AddProductsToCartDocument } from './AddProductsToCart.gql';
-import { CreateEmptyCartDocument } from './CreateEmptyCart.gql';
+import { AddProductsToCartForm } from '@graphcommerce/magento-product';
+import { useFormAddProductsToCart, AddProductsToCartFormProps } from '@graphcommerce/magento-product';
 import {
-    Paper,
     Typography,
     TextField,
     Button,
@@ -17,7 +12,6 @@ import {
     CardContent,
 } from '@mui/material';
 import { styled } from '@mui/system';
-import Cookies from 'js-cookie';
 
 const StyledCard = styled(Card)<{ index: number }>(({ theme, index }) => ({
     display: 'flex',
@@ -94,26 +88,13 @@ interface ProductGridProps {
     product: ConfigurableProduct;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ product }) => {
+interface ProductGridProps {
+    product: ConfigurableProduct;
+}
+
+export const ProductVariantsGrid: React.FC<ProductGridProps> = ({ product }) => {
     const [quantities, setQuantities] = useState<Record<string, number>>({});
-    // const [cartId, setCartId] = useState<string | null>(null);
-    const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-
-    const [createEmptyCart] = useMutation<{ createEmptyCart: string }>(CreateEmptyCartDocument);
-
-    const cartId = useCartIdCreate();
-
-    const [addProductsToCart, { loading }] = useMutation(AddProductsToCartDocument, {
-        onCompleted: (data) => {
-            console.log('Products added to cart:', data);
-            setMessage({ text: `${product.name} has been added to your shopping cart!`, type: 'success' });
-
-        },
-        onError: (error) => {
-            console.log('add to cart error', error)
-            setMessage({ text: `Error adding products to cart: ${error.message}`, type: 'error' });
-        }
-    });
+    const form = useFormAddProductsToCart();
 
     useEffect(() => {
         // Initialize quantities to 0 for all variants
@@ -127,60 +108,33 @@ const ProductGrid: React.FC<ProductGridProps> = ({ product }) => {
     const handleQuantityChange = (sku: string, value: number) => {
         const newQuantity = Math.max(0, value || 0);
         setQuantities(prev => ({ ...prev, [sku]: newQuantity }));
-    };
 
-    const addToCart = async () => {
-        let currentCartId = await cartId();
-        console.log('currentCartId', currentCartId)
-
-        // if (!currentCartId) {
-        //     try {
-        //         const result = await createEmptyCart();
-        //         if (result.data?.createEmptyCart) {
-        //             currentCartId = result.data.createEmptyCart;
-        //             setCartId(currentCartId);
-        //             Cookies.set('cart', currentCartId);
-        //         } else {
-        //             throw new Error('Failed to create a new cart');
-        //         }
-        //     } catch (err) {
-        //         console.error('Error creating cart:', err);
-        //         setMessage({ text: err instanceof Error ? err.message : 'An unknown error occurred', type: 'error' });
-        //         return;
-        //     }
-        // }
-
-        const cartItems = Object.entries(quantities)
-            .filter(([_, quantity]) => quantity > 0)
-            .map(([sku, quantity]) => ({ sku, quantity }));
-
-        try {
-            await addProductsToCart({
-                variables: {
-                    cartId: currentCartId,
-                    cartItems,
-                },
-            });
-            // Reset quantities after successful addition
-            setQuantities(prev => Object.fromEntries(Object.keys(prev).map(key => [key, 0])));
-        } catch (err) {
-            console.error('Error adding products to cart:', err);
+        // Update the form values
+        let cartItems = form.getValues('cartItems') || [];
+        if (!Array.isArray(cartItems)) {
+            cartItems = [];
         }
+        const cartItemIndex = cartItems.findIndex(item => item.sku === sku);
+        if (cartItemIndex !== -1) {
+            cartItems[cartItemIndex] = { ...cartItems[cartItemIndex], quantity: newQuantity };
+        } else {
+            cartItems.push({ sku, quantity: newQuantity });
+        }
+        form.setValue('cartItems', cartItems);
     };
 
 
-    // Use the main product's price for all variants
     const price = product.price_range.minimum_price.final_price.value;
-
-    // Calculate column widths based on the number of configurable options
     const optionCount = product.configurable_options.length;
-    const optionWidth = Math.floor(12 / (optionCount + 3)); // +3 for price, subtotal, and quantity
+    const optionWidth = Math.floor(12 / (optionCount + 3));
 
     const totalQuantity = Object.values(quantities).reduce((sum, q) => sum + q, 0);
     const totalPrice = Object.values(quantities).reduce((sum, q) => sum + q * price, 0);
 
-    return (
-        <Box sx={{ flexGrow: 1 }}>
+    const formContent = (
+
+
+        <Box component="form" onSubmit={form.handleSubmit(() => { })} sx={{ flexGrow: 1 }}>
             <Grid container spacing={1} sx={{ mb: 2 }}>
                 {product.configurable_options.map(option => (
                     <Grid item xs={optionWidth} key={option.attribute_code}>
@@ -243,7 +197,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({ product }) => {
                 </StyledCard>
             ))}
 
-
             <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                 <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                     <Typography variant="h6">
@@ -252,27 +205,23 @@ const ProductGrid: React.FC<ProductGridProps> = ({ product }) => {
                     <Button
                         variant="contained"
                         color="primary"
-                        onClick={addToCart}
-                        disabled={totalQuantity === 0 || loading}
+                        type="submit"
+                        disabled={totalQuantity === 0}
                     >
-                        {loading ? 'Adding to Cart...' : 'Add to Cart'}
+                        Add to Cart
                     </Button>
                 </Box>
-                {message && (
-                    <Typography
-                        variant="body2"
-                        sx={{
-                            mt: 1,
-                            color: message.type === 'success' ? 'green' : 'red',
-                            alignSelf: 'flex-end'
-                        }}
-                    >
-                        {message.text}
-                    </Typography>
-                )}
             </Box>
         </Box>
+
+    )
+
+    // const totalQuantity = Object.values(quantities).reduce((sum, q) => sum + q, 0);
+    // const totalPrice = Object.values(quantities).reduce((sum, q) => sum + q * price, 0);
+
+    return (
+        <AddProductsToCartForm>
+            {formContent}
+        </AddProductsToCartForm>
     );
 };
-
-export default ProductGrid;
